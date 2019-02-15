@@ -88,5 +88,5 @@ class DQNAgent(object):
     def save_target_net(self, id):
         torch.save(self.target_net.state_dict(), 'trained_models/target_net_{}'.format(str(id)))
 
-    def save_qnet(self, id):
-        torch.save(self.qnet.state_dict(), 'trained_models/qnet_{}'.format(str(id)))
+    def save_qnet(self, id_str):
+        torch.save(self.qnet.state_dict(), 'models/{}'.format(id_str))
