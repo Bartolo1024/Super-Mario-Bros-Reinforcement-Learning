@@ -6,14 +6,24 @@ from agents.dqn_agent import DQNAgent
 
 def parse_args():
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('-e' ,'--epochs-count', type=int, default=1000, help='epochs count')
-    parser.add_argument('-t' ,'--target_update', type=int, default=20, help='epochs between target network updates')
-    parser.add_argument('-es' ,'--eps-start', type=float, default=0.9, help='random action start probability')
-    parser.add_argument('-ee' ,'--eps-end', type=float, default=0.05, help='random action end probability')
-    parser.add_argument('-ed' ,'--eps-decay', type=int, default=50000, help='random action probability decay')
-    parser.add_argument('-bs' ,'--batch-size', type=int, default=2048, help='batch_size')
-    parser.add_argument('-g' ,'--gamma', type=float, default=0.7, help='gamma')
-    parser.add_argument('-l' ,'--learning-rate', type=float, default=0.0001, help='learning rate')
+    parser.add_argument('-e', '--epochs-count', type=int, default=1000,
+                        help='epochs count')
+    parser.add_argument('-t', '--target_update', type=int, default=20,
+                        help='epochs between target network updates')
+    parser.add_argument('-es', '--eps-start', type=float, default=0.9,
+                        help='random action start probability')
+    parser.add_argument('-ee', '--eps-end', type=float, default=0.05,
+                        help='random action end probability')
+    parser.add_argument('-ed', '--eps-decay', type=int, default=20000,
+                        help='random action probability decay')
+    parser.add_argument('-bs', '--batch-size', type=int, default=128,
+                        help='batch_size')
+    parser.add_argument('-nu', '--num-of-updates', type=int, default=1,
+                        help='number of updates after epoch (useful when batch size exceeds gpu capacity)')
+    parser.add_argument('-g', '--gamma', type=float, default=0.7,
+                        help='gamma')
+    parser.add_argument('-l', '--learning-rate', type=float, default=0.0001,
+                        help='learning rate')
     parser.add_argument('--no-render', type=bool, help='display game')
     args = parser.parse_args()
     return args
@@ -37,7 +47,7 @@ def main(args):
                      eps_decay=args.eps_decay,
                      batch_size=args.batch_size,
                      num_of_actions=7)
-
+    f = open('log.txt', 'w')
     for i_episode in range(args.epochs_count):
 
         total_reward = 0
@@ -51,7 +61,10 @@ def main(args):
             total_reward += reward
 
         print('total reward: {}'.format(total_reward))
-        agent.update_qnet()
+        f.write('total reward: {}\n'.format(total_reward))
+
+        for _ in range(args.num_of_updates):
+            agent.update_qnet()
 
         if i_episode % args.target_update == 0:
             agent.update_target_net()
@@ -59,6 +72,7 @@ def main(args):
         if i_episode != 0 and i_episode % 200 == 0:
             agent.save_target_net('model_{}_total_reward_{}'.format(i_episode, total_reward))
 
+    f.close()
     env.close()
 
 if __name__ == '__main__':

@@ -20,11 +20,14 @@ class DQNAgent(object):
                  num_of_actions=2):
         self.step = 0
         self.device = device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print(device)
         self.batch_size = batch_size
         self.gamma = gamma
         self.epsilon = Epsilon(eps_start, eps_end, eps_decay)
         self.qnet = DQN(state_shape, num_actions=num_of_actions).to(device)
+        self.qnet = torch.nn.DataParallel(self.qnet, device_ids=range(torch.cuda.device_count()))
         self.target_net = DQN(state_shape, num_actions=num_of_actions).to(device)
+        self.target_net = torch.nn.DataParallel(self.target_net, device_ids=range(torch.cuda.device_count()))
         self.target_net.load_state_dict(self.qnet.state_dict())
         self.target_net.eval()
         self.optimizer = optim.RMSprop(self.qnet.parameters(), lr=lr)
@@ -51,7 +54,7 @@ class DQNAgent(object):
         batch = self.memory.sample(self.batch_size)
         batch = Transition(*zip(*batch))
 
-        state_batch = torch.stack(tuple([self.state_transforms(state) for state in batch.state]))
+        state_batch = torch.stack(tuple([self.state_transforms(state).to(self.device) for state in batch.state]))
         action_batch = torch.stack(tuple([torch.tensor(action, device=self.device, dtype=torch.long, requires_grad=False)
                                         for action in batch.action]))
         reward_batch = torch.stack(tuple([torch.tensor(reward, device=self.device, dtype=torch.float32, requires_grad=False)
@@ -73,7 +76,7 @@ class DQNAgent(object):
     def future_reward_estimate(self, batch):
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=self.device,
                                       dtype=torch.uint8)
-        non_final_next_states = torch.stack(tuple([self.state_transforms(s) for s in batch.next_state if s is not None]))
+        non_final_next_states = torch.stack(tuple([self.state_transforms(s).to(self.device) for s in batch.next_state if s is not None]))
         next_state_values = torch.zeros(self.batch_size, device=self.device, requires_grad=False)
         next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
         return next_state_values * self.gamma
@@ -85,8 +88,8 @@ class DQNAgent(object):
         # print('transition state {} action {} next_state {} reward {}'.format(0, action, 0, reward))
         self.memory.push(state, action, next_state, reward)
 
-    def save_target_net(self, id):
-        torch.save(self.target_net.state_dict(), 'trained_models/target_net_{}'.format(str(id)))
+    def save_target_net(self, id_str):
+        torch.save(self.target_net.state_dict(), 'models/target_net_{}'.format(id_str))
 
     def save_qnet(self, id_str):
         torch.save(self.qnet.state_dict(), 'models/{}'.format(id_str))
