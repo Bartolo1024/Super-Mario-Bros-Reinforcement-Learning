@@ -69,7 +69,7 @@ def main(args):
         if i_episode % args.target_update == 0:
             agent.update_target_net()
 
-        if i_episode != 0 and i_episode % 200 == 0:
+        if i_episode != 0 and (i_episode + 1) % 200 == 0:
             agent.save_target_net('model_{}_total_reward_{}'.format(i_episode, total_reward))
 
     f.close()
