@@ -8,6 +8,6 @@ class Epsilon(object):
         self.step = 0
 
     def __call__(self):
-        eps_th = self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1 * self.step / self.eps_decay)
+        eps_th = self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1 * float(self.step) / self.eps_decay)
         self.step += 1
         return eps_th
